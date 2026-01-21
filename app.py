@@ -20,44 +20,39 @@ app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=5)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=1)
 
-# Define o debug mode com base na variável de ambiente (False por padrão para produção)
-app.config['DEBUG'] = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
-
-# OTIMIZAÇÃO DE CONEXÕES (Requisito para bases de dados remotas com limites)
+# OTIMIZAÇÃO DE CONEXÕES
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_size": 2,          # Mantém apenas 2 ligações abertas
-    "max_overflow": 0,       # Não permite criar mais do que o limite
-    "pool_recycle": 300,     # Recicla a ligação a cada 5 minutos
-    "pool_pre_ping": True    # Verifica se a ligação está viva antes de usar
+    "pool_size": 2,
+    "max_overflow": 0,
+    "pool_recycle": 300,
+    "pool_pre_ping": True
 }
 
 db.init_app(app)
 jwt = JWTManager(app)
 
-# --- Handlers de Erro Globais para retornar JSON ---
+# Handlers de Erro
 @app.errorhandler(404)
 def not_found_error(error):
-    return jsonify({"message": "Recurso não encontrado"}), 404
+    return jsonify({"message": "Recurso não encontrado no Vercel"}), 404
 
 @app.errorhandler(405)
-def method_not_allowed_error(error):
+def method_not_allowed(error):
     return jsonify({"message": "Método HTTP não permitido para este recurso"}), 405
 
 @app.errorhandler(500)
 def internal_error(error):
-    db.session.rollback() # Garante que a sessão da BD é revertida em caso de erro
-    return jsonify({"message": "Ocorreu um erro interno no servidor"}), 500
+    db.session.rollback()
+    return jsonify({"message": "Erro interno no servidor (Verifique a ligação à Base de Dados no Vercel)"}), 500
 
 @app.route('/')
 def home():
     return jsonify({"message": "Bem-vindo à API do LetsQuiz (Segura)!"})
 
+# Registo de Blueprints
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(quiz_bp, url_prefix='/quizzes')
 app.register_blueprint(question_bp, url_prefix='/questions')
 
 if __name__ == '__main__':
-    with app.app_context():
-        # db.create_all() # Comentado porque as tabelas já devem existir na BD da escola
-        pass
-    app.run(debug=app.config['DEBUG'], host='0.0.0.0')
+    app.run(debug=True)
