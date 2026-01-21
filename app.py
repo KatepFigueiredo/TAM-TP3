@@ -7,6 +7,7 @@ from auth_routes import auth_bp
 from quiz_routes import quiz_bp
 from question_routes import question_bp
 import os
+from sqlalchemy.pool import NullPool
 
 # Carrega as variáveis do ficheiro .env
 load_dotenv()
@@ -20,12 +21,11 @@ app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=5)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=1)
 
-# OTIMIZAÇÃO DE CONEXÕES
+# OTIMIZAÇÃO PARA SERVERLESS (Vercel)
+# Usamos NullPool para fechar as conexões imediatamente após cada pedido, 
+# evitando o erro "too many connections" no servidor da ESTGOH.
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_size": 2,
-    "max_overflow": 0,
-    "pool_recycle": 300,
-    "pool_pre_ping": True
+    "poolclass": NullPool,
 }
 
 db.init_app(app)
